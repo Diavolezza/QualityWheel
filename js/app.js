@@ -49,6 +49,7 @@
       b.setAttribute("aria-pressed", String(b.getAttribute("data-lang") === lang));
     });
     $("wheel").setAttribute("aria-label", t("wheelLabel"));
+    renderSoundButton();
     ["support", "conflict", "neutral"].forEach(function (f) {
       $("text-" + f).placeholder = t("placeholder");
     });
@@ -58,6 +59,12 @@
   }
 
   // ---------- rendering ----------
+  function renderSoundButton() {
+    var on = QW.sound.isEnabled(), b = $("sound");
+    b.setAttribute("aria-pressed", String(on));
+    b.textContent = (on ? "\uD83D\uDD0A " : "\uD83D\uDD07 ") + t(on ? "soundOn" : "soundOff");
+  }
+
   function renderLegend() {
     var box = $("legend");
     box.innerHTML = "";
@@ -220,6 +227,7 @@
   // ---------- actions ----------
   function spin() {
     if (wheel.spinning || state.drawn.length >= 2) return;
+    QW.sound.unlock();
     var pool = QW.qualities.map(function (q) { return q.id; })
       .filter(function (id) { return state.drawn.indexOf(id) < 0; });
     var id = pool[Math.floor(QW.random() * pool.length)];
@@ -293,6 +301,10 @@
     $("spin").addEventListener("click", spin);
     $("wheel").addEventListener("click", spin);
     $("reset").addEventListener("click", reset);
+    $("sound").addEventListener("click", function () {
+      QW.sound.setEnabled(!QW.sound.isEnabled());
+      renderSoundButton();
+    });
     document.querySelectorAll("[data-lang]").forEach(function (b) {
       b.addEventListener("click", function () { setLang(b.getAttribute("data-lang")); });
     });

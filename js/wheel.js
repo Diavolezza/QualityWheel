@@ -63,7 +63,7 @@ QW.Wheel.prototype.draw = function () {
     var a0 = this.rot + i * seg, a1 = a0 + seg;
     var used = this.drawn.indexOf(it.id) >= 0;
     var hi = this.highlight === it.id;
-    var rr = hi ? R + 4 : R;
+    var rr = R;
 
     ctx.beginPath();
     ctx.moveTo(cx, cy);
@@ -77,8 +77,8 @@ QW.Wheel.prototype.draw = function () {
       ctx.fillStyle = "rgba(255,255,255,0.13)";
       ctx.fill();
     }
-    ctx.lineWidth = hi ? 3 : 1;
-    ctx.strokeStyle = hi ? "#ffffff" : "rgba(255,255,255,0.75)";
+    ctx.lineWidth = 1;
+    ctx.strokeStyle = "rgba(255,255,255,0.75)";
     ctx.stroke();
 
     // label along the radius, right-aligned at the rim
@@ -183,14 +183,13 @@ QW.Wheel.prototype.indexOfId = function (id) {
 QW.Wheel.prototype.spinTo = function (id, done) {
   var self = this, seg = this.segAngle(), idx = this.indexOfId(id);
   var reduced = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-  var frac = 0.2 + QW.random() * 0.6;            // never stop right on a border
-  var target = -(idx + frac) * seg;
+  var target = -(idx + 0.5) * seg;              // stop exactly in the middle of the segment
   var start = this.rot;
   var delta = (((target - start) % (2 * Math.PI)) + 2 * Math.PI) % (2 * Math.PI);
   var turns = reduced ? 0 : 5 + Math.floor(QW.random() * 3);
   var end = start + delta + turns * 2 * Math.PI;
   var duration = reduced ? 400 : 4200 + QW.random() * 1200;
-  var t0 = null;
+  var t0 = null, lastIdx = this.indexAt(start);
   this.spinning = true;
   this.highlight = null;
   function ease(t) { return 1 - Math.pow(1 - t, 4); }
@@ -198,6 +197,11 @@ QW.Wheel.prototype.spinTo = function (id, done) {
     if (t0 === null) t0 = ts;
     var t = Math.min(1, (ts - t0) / duration);
     self.rot = start + (end - start) * ease(t);
+    var now = self.indexAt(self.rot);
+    if (now !== lastIdx) {            // a segment border passed the pointer
+      lastIdx = now;
+      if (QW.sound) QW.sound.tick();
+    }
     self.draw();
     if (t < 1) {
       window.requestAnimationFrame(frame);
@@ -206,6 +210,7 @@ QW.Wheel.prototype.spinTo = function (id, done) {
       self.spinning = false;
       self.highlight = id;
       self.draw();
+      if (QW.sound) QW.sound.stop();
       if (done) done(id);
     }
   }
