@@ -387,7 +387,10 @@ QW.qualities.forEach(function (q) {
 });
 
 // Unordered pair key: the two clause numbers in numeric order, joined by "|".
+// Ids of the GREEN extension (G1, G2) are not clause numbers; they come first.
 QW.compareIds = function (a, b) {
+  var ga = /^G/.test(a), gb = /^G/.test(b);
+  if (ga || gb) return ga && gb ? (a < b ? -1 : a > b ? 1 : 0) : ga ? -1 : 1;
   var pa = a.split(".").map(Number), pb = b.split(".").map(Number);
   for (var i = 0; i < Math.max(pa.length, pb.length); i++) {
     var d = (pa[i] || 0) - (pb[i] || 0);

@@ -6,7 +6,7 @@
   <title>Quality Wheel – ISO/IEC 25010</title>
   <meta name="description" content="Draw two qualities from ISO/IEC 25010:2023 with a wheel and assess whether they support each other, are neutral or conflict.">
   <link rel="icon" href="favicon.svg" type="image/svg+xml">
-  <link rel="stylesheet" href="css/style.css?v=1795603408">
+  <link rel="stylesheet" href="css/style.css?v=1795623216">
 </head>
 <body>
   <header class="top">
@@ -25,6 +25,14 @@
 
   <main class="layout">
     <section class="wheel-panel">
+      <div class="green-bar" id="green-bar" hidden>
+        <span class="green-label" data-i18n="greenLabel"></span>
+        <div class="anchor-group" id="anchor-group" role="radiogroup">
+          <button type="button" role="radio" data-anchor="energy" aria-checked="false"></button>
+          <button type="button" role="radio" data-anchor="carbon" aria-checked="false"></button>
+          <button type="button" role="radio" data-anchor="both" aria-checked="false" data-i18n="greenBoth"></button>
+        </div>
+      </div>
       <div class="wheel-wrap">
         <canvas id="wheel" role="img"></canvas>
       </div>
@@ -35,6 +43,7 @@
       </div>
       <label class="prefer"><input type="checkbox" id="prefer"> <span data-i18n="prefer"></span></label>
       <p id="wheel-status" class="status" aria-live="polite"></p>
+      <p id="teacher-hint" class="teacher-hint" data-i18n="teacherHint" hidden></p>
       <h2 class="legend-title" data-i18n="legend"></h2>
       <ul id="legend" class="legend"></ul>
     </section>
@@ -85,16 +94,17 @@
   </main>
 
   <footer class="foot">
-    <p><span data-i18n="footer"></span> · <a href="https://github.com/Diavolezza/QualityWheel" data-i18n="source"></a></p>
+    <p><span data-i18n="footer"></span> <span id="footer-green" data-i18n="footerGreen" hidden></span> · <a href="https://github.com/Diavolezza/QualityWheel" data-i18n="source"></a></p>
   </footer>
   <div id="flash" class="flash" role="status"></div>
 
-  <script src="js/data.js?v=1795603408"></script>
-  <script src="js/suggestions.js?v=1795603408"></script>
-  <script src="js/i18n.js?v=1795603408"></script>
-  <script src="js/sound.js?v=1795603408"></script>
-  <script src="js/wheel.js?v=1795603408"></script>
-  <script src="js/export.js?v=1795603408"></script>
-  <script src="js/app.js?v=1795603408"></script>
+  <script src="js/data.js?v=1795623216"></script>
+  <script src="js/suggestions.js?v=1795623216"></script>
+  <script src="js/green.js?v=1795623216"></script>
+  <script src="js/i18n.js?v=1795623216"></script>
+  <script src="js/sound.js?v=1795623216"></script>
+  <script src="js/wheel.js?v=1795623216"></script>
+  <script src="js/export.js?v=1795623216"></script>
+  <script src="js/app.js?v=1795623216"></script>
 </body>
 </html>

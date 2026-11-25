@@ -18,7 +18,18 @@
   // Otherwise it appears only after an own assessment with a reason of some length.
   var teacher = params.has("teacher");
   var MIN_OWN_TEXT = 40;
+  // GREEN mode (?mode=green): quality 1 is a fixed extension quality (energy or carbon, chosen above the
+  // wheel, ?anchor=energy|carbon|both); the wheel only draws the ISO quality to compare it with.
+  var green = params.get("mode") === "green";
+  var ANCHORS = ["energy", "carbon", "both"];
+  state.anchor = ANCHORS.indexOf(params.get("anchor")) >= 0 ? params.get("anchor") : "energy";
   var wheel;
+
+  function anchorIds() {
+    if (!green) return [];
+    return state.anchor === "both" ? QW.extensionQualities.map(function (q) { return q.id; })
+      : [QW.extensionByKey[state.anchor].id];
+  }
 
   function initialLang() {
     var p = params.get("lang");
@@ -153,19 +164,40 @@
     var cd = document.createElement("p");
     cd.textContent = cat.desc[state.lang];
     det.appendChild(cd);
+    if (q.link) {
+      var lp = document.createElement("p");
+      lp.className = "source-link";
+      var a = document.createElement("a");
+      a.href = q.link;
+      a.target = "_blank";
+      a.rel = "noopener";
+      a.textContent = t("sourceArc42");
+      lp.appendChild(a);
+      det.appendChild(lp);
+    }
     body.appendChild(det);
     el.appendChild(body);
   }
 
   function renderWheelControls() {
-    var n = state.drawn.length, spin = $("spin");
+    var n = state.drawn.length, spin = $("spin"), fixed = anchorIds().length;
     spin.disabled = n >= 2 || wheel.spinning;
     spin.textContent = wheel.spinning ? t("spinning") : n === 0 ? t("spin1") : n === 1 ? t("spin2") : t("spinDone");
-    $("reset").disabled = wheel.spinning || n === 0;
-    $("redraw").hidden = n < 2;
+    $("reset").disabled = wheel.spinning || n <= fixed;
+    $("redraw").hidden = n < 2 || fixed === 2;
     $("redraw").disabled = wheel.spinning;
     $("prefer").checked = state.preferTradeoffs;
-    $("wheel-status").textContent = n === 0 ? t("statusStart") : n === 1 ? t("statusOne") : t("statusTwo");
+    $("wheel-status").textContent = fixed === 2 ? t("statusGreenBoth")
+      : n === 0 ? t("statusStart") : n === 1 ? t(green ? "statusGreen" : "statusOne") : t("statusTwo");
+    $("green-bar").hidden = !green;
+    document.querySelectorAll("#anchor-group button").forEach(function (b) {
+      var a = b.getAttribute("data-anchor");
+      if (a !== "both") b.textContent = QW.extensionByKey[a].name[state.lang];
+      b.setAttribute("aria-checked", String(state.anchor === a));
+      b.disabled = wheel.spinning;
+    });
+    $("teacher-hint").hidden = !teacher;
+    $("footer-green").hidden = !green;
   }
 
   function renderAssessment() {
@@ -307,17 +339,22 @@
       wheel.draw();
       renderAll();
       $("card-" + (state.drawn.length - 1)).classList.add("arrived");
+      updateUrl();
     });
     renderWheelControls();
+  }
+
+  function clearAssessment() {
+    state.relation = null;
+    state.texts = { support: "", conflict: "", neutral: "", decision: "" };
+    state.suggestionOpen = false;
   }
 
   // Draws the second quality again (for example after a neutral pair); the first one stays.
   function redrawSecond() {
     if (wheel.spinning || state.drawn.length !== 2) return;
     state.rejected.push(state.drawn.pop());
-    state.relation = null;
-    state.texts = { support: "", conflict: "", neutral: "", decision: "" };
-    state.suggestionOpen = false;
+    clearAssessment();
     wheel.drawn = state.drawn.slice();
     wheel.highlight = null;
     renderAll();
@@ -326,15 +363,82 @@
 
   function reset() {
     if (wheel.spinning) return;
-    state.drawn = [];
-    state.relation = null;
-    state.texts = { support: "", conflict: "", neutral: "", decision: "" };
+    state.drawn = anchorIds();
+    clearAssessment();
     state.rejected = [];
-    state.suggestionOpen = false;
-    wheel.drawn = [];
+    wheel.drawn = state.drawn.slice();
     wheel.highlight = null;
     wheel.draw();
     renderAll();
+    updateUrl();
+  }
+
+  // GREEN mode: choose the fixed quality. An ISO quality already drawn stays, unless both are compared.
+  function setAnchor(a) {
+    if (wheel.spinning || a === state.anchor) return;
+    var partner = state.drawn.filter(function (id) { return !/^G/.test(id); });
+    state.anchor = a;
+    state.drawn = anchorIds().concat(a === "both" ? [] : partner);
+    clearAssessment();
+    state.rejected = [];
+    wheel.drawn = state.drawn.slice();
+    if (a === "both") wheel.highlight = null;
+    wheel.draw();
+    renderAll();
+    updateUrl();
+  }
+
+  // Teaching mode: a quality chosen by hand. It fills the next free card; with two cards full it
+  // replaces the second one (the first one, and a fixed GREEN quality, stay).
+  function choose(id) {
+    if (!teacher || wheel.spinning || !id) return;
+    if (state.drawn.indexOf(id) >= 0) return;
+    if (anchorIds().length === 2) return;          // GREEN: both extension qualities fixed
+    QW.sound.unlock();
+    wheel.turnTo(id, function () {
+      if (state.drawn.length >= 2) {
+        state.drawn.pop();
+        clearAssessment();
+      }
+      state.drawn.push(id);
+      wheel.drawn = state.drawn.slice();
+      wheel.draw();
+      renderAll();
+      $("card-" + (state.drawn.length - 1)).classList.add("arrived");
+      updateUrl();
+    });
+    renderWheelControls();
+  }
+
+  // Keeps the address in step with the mode and, in teaching mode, with the drawn pair, so that the
+  // trainer can pass the pair on as a link.
+  function updateUrl() {
+    if (!window.history || !window.history.replaceState) return;
+    var p = new URLSearchParams(window.location.search);
+    if (green) p.set("anchor", state.anchor);
+    if (teacher && state.drawn.length === 2) p.set("pick", state.drawn.join(","));
+    else p.delete("pick");
+    p.delete("rel");
+    p.delete("suggest");
+    var q = p.toString().replace(/=(?=&|$)/g, "").replace(/%2C/g, ",");   // ?teacher instead of ?teacher=
+    try { window.history.replaceState(null, "", window.location.pathname + (q ? "?" + q : "")); } catch (e) { /* file:// */ }
+  }
+
+  function onWheelKey(e) {
+    if (wheel.spinning) { if (e.key !== "Tab") e.preventDefault(); return; }
+    var k = e.key;
+    if (teacher && (k === "ArrowRight" || k === "ArrowDown" || k === "PageDown")) {
+      e.preventDefault();
+      QW.sound.unlock();
+      wheel.step(1, renderWheelControls);
+    } else if (teacher && (k === "ArrowLeft" || k === "ArrowUp" || k === "PageUp")) {
+      e.preventDefault();
+      QW.sound.unlock();
+      wheel.step(-1, renderWheelControls);
+    } else if (k === "Enter" || k === " ") {
+      e.preventDefault();
+      if (teacher) choose(wheel.currentId()); else spin();
+    }
   }
 
   function exportPng() {
@@ -371,7 +475,16 @@
   function init() {
     wheel = new QW.Wheel($("wheel"), wheelItems());
     $("spin").addEventListener("click", spin);
-    $("wheel").addEventListener("click", spin);
+    $("wheel").addEventListener("click", function (e) {
+      // teaching mode: a click on a segment chooses it; a click on the hub spins
+      var id = teacher ? wheel.segmentAt(e.clientX, e.clientY) : null;
+      if (id) choose(id); else spin();
+    });
+    $("wheel").tabIndex = 0;
+    $("wheel").addEventListener("keydown", onWheelKey);
+    document.querySelectorAll("#anchor-group button").forEach(function (b) {
+      b.addEventListener("click", function () { setAnchor(b.getAttribute("data-anchor")); });
+    });
     $("reset").addEventListener("click", reset);
     $("redraw").addEventListener("click", redrawSecond);
     $("prefer").addEventListener("change", function (e) {
@@ -412,13 +525,33 @@
       resizeTimer = setTimeout(function () { wheel.resize(); }, 120);
     });
 
-    // ?pick=3.2.2,3.6.1 draws the two qualities directly (for teaching and tests)
-    var pick = (params.get("pick") || "").split(",").filter(function (id) { return QW.qualityById[id]; });
+    // ?pick=3.2.2,3.6.1 draws the two qualities directly (for teaching and tests).
+    // Extension qualities (G1, G2) only in GREEN mode, and only as quality 1, or both together.
+    var pick = (params.get("pick") || "").split(",").filter(function (id) {
+      return QW.qualityById[id] && (green || !/^G/.test(id));
+    });
+    if (green && pick.length === 2) {
+      var gs = pick.filter(function (id) { return /^G/.test(id); });
+      if (gs.length === 2) {
+        state.anchor = "both";
+        pick = anchorIds();
+      }
+      else if (gs.length === 1) {
+        state.anchor = QW.qualityById[gs[0]].key;
+        pick = [gs[0], pick[0] === gs[0] ? pick[1] : pick[0]];
+      } else pick = [];
+    }
     if (pick.length === 2 && pick[0] !== pick[1]) {
       state.drawn = pick;
       wheel.drawn = pick.slice();
-      wheel.rot = -(wheel.indexOfId(pick[1]) + 0.5) * wheel.segAngle();
-      wheel.highlight = pick[1];
+      var last = wheel.indexOfId(pick[1]);
+      if (last >= 0) {
+        wheel.rot = -(last + 0.5) * wheel.segAngle();
+        wheel.highlight = pick[1];
+      }
+    } else if (green) {
+      state.drawn = anchorIds();
+      wheel.drawn = state.drawn.slice();
     }
     var rel = params.get("rel");
     if (state.drawn.length === 2 && QW.relations[rel]) state.relation = rel;

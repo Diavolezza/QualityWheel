@@ -60,11 +60,35 @@ and usually no decision; where a typical touchpoint exists, it is named in the r
 The key is the two clause numbers in numeric order, joined by `|`. `node tools/check-data.mjs` checks the catalogue
 and all suggestions (also run by the GitHub workflow before publishing).
 
+### GREEN mode
+
+For the iSAQB Advanced Level module GREEN, `index.html?mode=green` compares **energy efficiency** or **carbon
+emission efficiency** with the qualities of ISO/IEC 25010. Neither of them is part of the standard; both come from
+the quality model on [quality.arc42.org](https://quality.arc42.org/qualities/). The standard itself counts energy among
+the resources of performance efficiency (3.2, note 2). In the app they are marked as an extension, on the card, in
+the footer and in the exported image.
+
+Above the wheel the trainer chooses the fixed quality 1: energy efficiency, carbon emission efficiency, or both
+against each other. The wheel then only draws quality 2 from the 40 ISO qualities. `anchor=energy|carbon|both` sets
+the choice in the address. `js/green.js` holds the two qualities with their quality scenarios and 81 suggestions:
+each of them with the 40 ISO qualities, and the two with each other. Their ids are `G1` and `G2`; in a key they come
+first, for example `"G1|3.7.4"`. Without `mode=green` the app shows nothing of the extension.
+
+### Teaching mode
+
+`teacher` makes the suggestion available at once (for demos and the debrief), and lets the trainer choose a quality by
+hand: a click on a segment turns the wheel there and fills the next card (with both cards full, it replaces quality
+2); a click on the centre spins as usual. On the focused wheel, the arrow keys (and Page Up/Page Down, which most
+presenter clickers send) move the pointer segment by segment, and Enter takes the quality under the pointer. The
+address then carries the pair as `pick=…`, so it can be passed on as a link. Without `teacher`, the wheel only draws.
+
 ### Launch options
 
 For teaching and tests: `index.html?lang=de` sets the language, `pick=3.2.2,3.6.1` starts with these two qualities
-drawn, `rel=both` preselects an assessment, `teacher` makes the suggestion available at once (for demos and the debrief),
-`teacher&suggest` opens it.
+drawn, `rel=both` preselects an assessment, `teacher` switches on the teaching mode, `teacher&suggest` also opens the
+suggestion, `mode=green` and `anchor=…` switch on the GREEN mode.
+
+The state for the CPSA-F training without these two modes is tagged `v1.0-cpsa-f`.
 
 ## About the texts
 
@@ -83,6 +107,7 @@ publishes the app on GitHub Pages.
 | `index.html`, `css/` | page and styles |
 | `js/data.js` | the 9 characteristics and 40 subcharacteristics with quality scenarios, in English and German |
 | `js/suggestions.js` | suggested assessments for pairs |
+| `js/green.js` | GREEN extension: energy efficiency, carbon emission efficiency and their suggestions |
 | `js/i18n.js` | texts of the user interface |
 | `js/wheel.js` | the wheel (canvas) |
 | `js/sound.js` | clicks and bell of the wheel (Web Audio API) |

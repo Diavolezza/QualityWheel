@@ -72,7 +72,8 @@ QW.renderResult = function (state) {
   assessH += 22;
 
   ctx.font = font(400, 20);
-  var footLines = QW.wrapText(ctx, t("footer"), W - 2 * pad);
+  var hasExtension = state.drawn.some(function (id) { return /^G/.test(id); });
+  var footLines = QW.wrapText(ctx, t("footer") + (hasExtension ? " " + t("footerGreen") : ""), W - 2 * pad);
   var headH = 140;
   var H = pad + headH + cardH + 48 + assessH + 50 + footLines.length * 28 + pad / 2;
   canvas.width = W * scale;

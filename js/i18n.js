@@ -64,7 +64,14 @@ QW.strings = {
     label_neutral: "Reason",
     exportAssessment: "Assessment",
     footer: "Names and clause numbers from ISO/IEC 25010:2023. Descriptions and quality scenarios in our own words, for the iSAQB CPSA-F training.",
-    source: "Source code on GitHub"
+    source: "Source code on GitHub",
+    greenLabel: "GREEN – fixed quality",
+    greenBoth: "Both against each other",
+    statusGreen: "Quality 1 is fixed. Spin the wheel to draw a quality from ISO/IEC 25010 to compare it with.",
+    statusGreenBoth: "Energy efficiency and carbon emission efficiency are compared with each other. Assess how they relate.",
+    teacherHint: "Teaching mode: click a segment, or move with the arrow keys and press Enter, to choose a quality by hand. A click on the centre spins the wheel.",
+    sourceArc42: "Source: quality.arc42.org",
+    footerGreen: "Energy efficiency and carbon emission efficiency are not part of ISO/IEC 25010; they come from the quality model on quality.arc42.org, for the iSAQB module GREEN."
   },
   de: {
     pageTitle: "Qualitäts-Glücksrad – ISO/IEC 25010",
@@ -127,7 +134,14 @@ QW.strings = {
     label_neutral: "Begründung",
     exportAssessment: "Einschätzung",
     footer: "Namen und Nummern aus ISO/IEC 25010:2023, deutsche Begriffe nach iSAQB-Lehrplan und -Glossar. Beschreibungen und Qualitätsszenarien in eigenen Worten, für das iSAQB-CPSA-F-Training.",
-    source: "Quellcode auf GitHub"
+    source: "Quellcode auf GitHub",
+    greenLabel: "GREEN – feste Qualität",
+    greenBoth: "Beide gegeneinander",
+    statusGreen: "Das 1. Qualitätsmerkmal steht fest. Dreh das Rad, um ein Qualitätsmerkmal aus ISO/IEC 25010 zum Vergleich zu ziehen.",
+    statusGreenBoth: "Energieeffizienz und CO₂-Emissionseffizienz stehen gegeneinander. Bewerte ihre Wechselwirkung.",
+    teacherHint: "Lehrmodus: Segment anklicken oder mit den Pfeiltasten ansteuern und Enter drücken, um ein Qualitätsmerkmal von Hand zu wählen. Ein Klick auf die Mitte dreht das Rad.",
+    sourceArc42: "Quelle: quality.arc42.org",
+    footerGreen: "Energieeffizienz und CO₂-Emissionseffizienz sind nicht Teil der ISO/IEC 25010; sie stammen aus dem Qualitätsmodell auf quality.arc42.org, für das iSAQB-Modul GREEN."
   }
 };
 

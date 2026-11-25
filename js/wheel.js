@@ -179,23 +179,71 @@ QW.Wheel.prototype.indexOfId = function (id) {
   return -1;
 };
 
+// Geometry of the wheel in CSS pixels (the same values as in draw()).
+QW.Wheel.prototype.geometry = function () {
+  var s = this.size, R = s / 2 - 37;
+  return { cx: s / 2 - 6, cy: s / 2, R: R, inner: R * 0.24 };
+};
+
+// Id of the segment at a point given in client coordinates; null for the hub or outside the wheel.
+QW.Wheel.prototype.segmentAt = function (clientX, clientY) {
+  var box = this.canvas.getBoundingClientRect(), g = this.geometry();
+  var x = clientX - box.left - g.cx, y = clientY - box.top - g.cy;
+  var r = Math.sqrt(x * x + y * y);
+  if (r < g.inner || r > g.R) return null;
+  var a = Math.atan2(y, x) - this.rot;
+  a = ((a % (2 * Math.PI)) + 2 * Math.PI) % (2 * Math.PI);
+  return this.items[Math.floor(a / this.segAngle()) % this.items.length].id;
+};
+
+// Id of the segment under the pointer.
+QW.Wheel.prototype.currentId = function () {
+  return this.items[this.indexAt(this.rot)].id;
+};
+
+// Turns the wheel the short way so that the given segment stops under the pointer (choice by hand).
+QW.Wheel.prototype.turnTo = function (id, done) {
+  this.spinTo(id, done, { short: true });
+};
+
+// Moves the pointer by one segment (dir = +1 or -1), for the keyboard.
+QW.Wheel.prototype.step = function (dir, done) {
+  var n = this.items.length;
+  var idx = this.indexAt(this.rot);
+  // if the pointer is not in the middle of a segment yet, the first step centres it
+  var mid = -(idx + 0.5) * this.segAngle();
+  var off = ((((this.rot - mid) % (2 * Math.PI)) + 3 * Math.PI) % (2 * Math.PI)) - Math.PI;
+  if (Math.abs(off) < 0.01) idx = (idx + dir + n) % n;
+  this.spinTo(this.items[idx].id, done, { short: true, keepHighlight: true });
+};
+
 // Turns the wheel so that the segment with the given id stops under the pointer.
-QW.Wheel.prototype.spinTo = function (id, done) {
+// opts.short: turn the short way without extra turns (choice by hand, keyboard).
+QW.Wheel.prototype.spinTo = function (id, done, opts) {
+  opts = opts || {};
   var self = this, seg = this.segAngle(), idx = this.indexOfId(id);
   var reduced = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
   var target = -(idx + 0.5) * seg;              // stop exactly in the middle of the segment
   var start = this.rot;
   var delta = (((target - start) % (2 * Math.PI)) + 2 * Math.PI) % (2 * Math.PI);
-  var turns = reduced ? 0 : 5 + Math.floor(QW.random() * 3);
+  var turns, duration;
+  if (opts.short) {
+    if (delta > Math.PI) delta -= 2 * Math.PI;   // the short way, in either direction
+    turns = 0;
+    duration = reduced ? 0 : Math.min(900, 140 + Math.abs(delta) / seg * 45);
+  } else {
+    turns = reduced ? 0 : 5 + Math.floor(QW.random() * 3);
+    duration = reduced ? 400 : 4200 + QW.random() * 1200;
+  }
   var end = start + delta + turns * 2 * Math.PI;
-  var duration = reduced ? 400 : 4200 + QW.random() * 1200;
   var t0 = null, lastIdx = this.indexAt(start);
+  var keep = this.highlight;
   this.spinning = true;
   this.highlight = null;
-  function ease(t) { return 1 - Math.pow(1 - t, 4); }
+  function ease(t) { return opts.short ? 1 - Math.pow(1 - t, 2) : 1 - Math.pow(1 - t, 4); }
   function frame(ts) {
     if (t0 === null) t0 = ts;
-    var t = Math.min(1, (ts - t0) / duration);
+    var t = duration > 0 ? Math.min(1, (ts - t0) / duration) : 1;
     self.rot = start + (end - start) * ease(t);
     var now = self.indexAt(self.rot);
     if (now !== lastIdx) {            // a segment border passed the pointer
@@ -208,9 +256,9 @@ QW.Wheel.prototype.spinTo = function (id, done) {
     } else {
       self.rot = end % (2 * Math.PI);
       self.spinning = false;
-      self.highlight = id;
+      self.highlight = opts.keepHighlight ? keep : id;
       self.draw();
-      if (QW.sound) QW.sound.stop();
+      if (QW.sound && !opts.keepHighlight) QW.sound.stop();   // no bell for single keyboard steps
       if (done) done(id);
     }
   }

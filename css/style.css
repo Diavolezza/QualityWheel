@@ -168,3 +168,19 @@ button.small { padding: .4rem .8rem; font-size: .9rem; }
   background: var(--accent); color: #fff; padding: .6rem 1rem; border-radius: 10px; transition: all .2s ease;
 }
 .flash.show { opacity: 1; transform: translate(-50%, 0); }
+
+/* ---------- GREEN mode and teaching mode ---------- */
+.green-bar { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: .5rem .8rem; margin: 0 0 .6rem; }
+.green-label { font-size: .8rem; text-transform: uppercase; letter-spacing: .06em; color: #1B5E20; font-weight: 700; }
+.anchor-group { display: inline-flex; border: 1.5px solid #1B5E20; border-radius: 10px; overflow: hidden; }
+.anchor-group button { border: 0; background: transparent; padding: .4rem .7rem; font-weight: 600; font-size: .92rem; white-space: nowrap; cursor: pointer; }
+@media (max-width: 560px) {
+  .anchor-group { flex-direction: column; }
+  .anchor-group button + button { border-left: 0; border-top: 1.5px solid #1B5E20; }
+}
+.anchor-group button + button { border-left: 1.5px solid #1B5E20; }
+.anchor-group button[aria-checked="true"] { background: #1B5E20; color: #fff; }
+.teacher-hint { text-align: center; color: var(--muted); font-size: .85rem; margin: -.4rem 0 1rem; }
+#wheel:focus-visible { outline: 3px solid #1B5E20; outline-offset: 4px; border-radius: 50%; }
+.card .source-link { font-size: .85rem; }
+.green-bar[hidden] { display: none; }

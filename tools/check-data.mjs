@@ -6,7 +6,7 @@ const root = new URL("../", import.meta.url);
 const sandbox = {};
 sandbox.window = sandbox;
 vm.createContext(sandbox);
-for (const f of ["js/data.js", "js/suggestions.js", "js/i18n.js"]) {
+for (const f of ["js/data.js", "js/suggestions.js", "js/green.js", "js/i18n.js"]) {
   vm.runInContext(readFileSync(new URL(f, root), "utf8"), sandbox, { filename: f });
 }
 const QW = sandbox.window.QW;
@@ -30,7 +30,20 @@ for (const q of QW.qualities) {
     for (const l of langs) if (!q.scenario || !q.scenario[part] || !q.scenario[part][l]) fail(`${q.id}: missing scenario.${part}.${l}`);
   }
 }
-for (const c of QW.categories) {
+// GREEN extension: two qualities outside ISO/IEC 25010, with ids G1, G2
+const ext = QW.extensionQualities || [];
+if (ext.length !== 2) fail(`expected 2 extension qualities, found ${ext.length}`);
+for (const q of ext) {
+  if (ids.has(q.id)) fail(`duplicate id ${q.id}`);
+  ids.add(q.id);
+  for (const field of ["name", "desc"]) {
+    for (const l of langs) if (!q[field] || !q[field][l]) fail(`${q.id}: missing ${field}.${l}`);
+  }
+  for (const part of ["context", "stimulus", "response", "measure"]) {
+    for (const l of langs) if (!q.scenario || !q.scenario[part] || !q.scenario[part][l]) fail(`${q.id}: missing scenario.${part}.${l}`);
+  }
+}
+for (const c of [...QW.categories, QW.extensionCategory]) {
   for (const l of langs) if (!c.name[l] || !c.desc[l]) fail(`${c.id}: missing text in ${l}`);
 }
 
@@ -56,11 +69,17 @@ for (const l of langs) {
   for (const k of Object.keys(QW.strings.en)) if (!QW.strings[l][k]) fail(`ui text ${k} missing in ${l}`);
 }
 
-const all = readFileSync(new URL("js/data.js", root), "utf8") + readFileSync(new URL("js/suggestions.js", root), "utf8");
+const all = ["js/data.js", "js/suggestions.js", "js/green.js", "js/i18n.js"].map((f) => readFileSync(new URL(f, root), "utf8")).join("\n");
 if (/CO2/.test(all)) fail("write CO₂ with a subscript 2");
 
-const pairs = (40 * 39) / 2;
-console.log(`${QW.qualities.length} subcharacteristics, ${count} of ${pairs} pairs with a suggestion`);
+const pairs = (40 * 39) / 2 + ext.length * 40 + 1;
+for (const a of ids) for (const b of ids) {
+  if (QW.compareIds(a, b) < 0 && !QW.suggestions[QW.pairKey(a, b)]) {
+    if (!(/^G/.test(a) && /^G/.test(b) && ext.length !== 2)) fail(`no suggestion for ${a} × ${b}`);
+  }
+}
+console.log(`${QW.qualities.length} subcharacteristics + ${ext.length} extension qualities, ${count} of ${pairs} pairs with a suggestion`);
+if (count !== pairs) fail(`expected ${pairs} suggestions, found ${count}`);
 if (errors.length) {
   console.error(errors.join("\n"));
   process.exit(1);
