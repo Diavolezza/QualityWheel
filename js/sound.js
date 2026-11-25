@@ -23,7 +23,7 @@ QW.sound = (function () {
     osc.frequency.exponentialRampToValueAtTime(600, when + 0.03);
     var og = c.createGain();
     og.gain.setValueAtTime(0.0001, when);
-    og.gain.exponentialRampToValueAtTime(0.9, when + 0.002);
+    og.gain.exponentialRampToValueAtTime(0.5, when + 0.002);
     og.gain.exponentialRampToValueAtTime(0.0001, when + 0.045);
     osc.connect(og);
     og.connect(out);
@@ -37,7 +37,7 @@ QW.sound = (function () {
     hp.frequency.value = 1500;
     var ng = c.createGain();
     ng.gain.setValueAtTime(0.0001, when);
-    ng.gain.exponentialRampToValueAtTime(0.6, when + 0.001);
+    ng.gain.exponentialRampToValueAtTime(0.33, when + 0.001);
     ng.gain.exponentialRampToValueAtTime(0.0001, when + 0.018);
     src.connect(hp);
     hp.connect(ng);
