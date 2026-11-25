@@ -31,8 +31,8 @@ The app speaks English and German (switch at the top right); everything in this 
 ### Suggestions
 
 40 subcharacteristics give 780 unordered pairs. The data structure in `js/suggestions.js` covers all of them; so far
-the three subcharacteristics of **3.2 Performance efficiency** (time behaviour, resource utilization, capacity) are
-filled in against all other subcharacteristics – 114 pairs. A suggestion has a relation (`support`, `neutral`, `conflict`, `both`) and a short reason in English and
+the subcharacteristics of **3.2 Performance efficiency**, **3.6 Security** and **3.7 Maintainability** are filled in
+against all other subcharacteristics – 455 pairs. A suggestion has a relation (`support`, `neutral`, `conflict`, `both`) and a short reason in English and
 German:
 
 ```js
