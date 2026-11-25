@@ -88,7 +88,7 @@ For teaching and tests: `index.html?lang=de` sets the language, `pick=3.2.2,3.6.
 drawn, `rel=both` preselects an assessment, `teacher` switches on the teaching mode, `teacher&suggest` also opens the
 suggestion, `mode=green` and `anchor=…` switch on the GREEN mode.
 
-The state for the CPSA-F training without these two modes is kept in the branch `release/v1.0-cpsa-f`.
+The last state for the CPSA-F training without these two modes is commit `b987b8e`.
 
 ## About the texts
 
