@@ -23,13 +23,14 @@ QW.wrapText = function (ctx, text, maxWidth) {
   return lines;
 };
 
-// state: { lang, drawn: [id, id], relation, texts: {support, conflict, neutral}, name }
+// state: { lang, drawn: [id, id], relation, texts: {support, conflict, neutral, decision}, name }
 QW.renderResult = function (state) {
   var lang = state.lang, t = function (k, v) { return QW.t(lang, k, v); };
   var W = 1600, pad = 64, gap = 96, colW = (W - 2 * pad - gap) / 2;
   var canvas = document.createElement("canvas");
   var ctx = canvas.getContext("2d");
   var scale = 1;
+  var SC_LABEL = 150;   // width of the label column in the quality scenario
 
   function font(weight, size, style) {
     return (style ? style + " " : "") + weight + " " + size + "px " + QW.FONT;
@@ -42,10 +43,13 @@ QW.renderResult = function (state) {
     var titleLines = QW.wrapText(ctx, q.id + "  " + q.name[lang], colW - 64);
     ctx.font = font(400, 26);
     var descLines = QW.wrapText(ctx, q.desc[lang], colW - 64);
-    ctx.font = font(400, 24, "italic");
-    var exLines = QW.wrapText(ctx, q.example[lang], colW - 64);
-    var h = 64 + 28 + titleLines.length * 46 + 16 + descLines.length * 36 + 22 + 32 + exLines.length * 34 + 32;
-    return { q: q, cat: cat, titleLines: titleLines, descLines: descLines, exLines: exLines, h: h };
+    ctx.font = font(400, 23);
+    var rows = ["context", "stimulus", "response", "measure"].map(function (k) {
+      return { label: t("sc_" + k), lines: QW.wrapText(ctx, q.scenario[k][lang], colW - 64 - SC_LABEL) };
+    });
+    var scH = 34 + rows.reduce(function (n, r) { return n + r.lines.length * 32 + 8; }, 0);
+    var h = 64 + 28 + titleLines.length * 46 + 16 + descLines.length * 36 + 22 + scH + 24;
+    return { q: q, cat: cat, titleLines: titleLines, descLines: descLines, rows: rows, h: h };
   }
   ctx.font = font(400, 26);
   var cards = state.drawn.map(function (id) { return cardLayout(QW.qualityById[id]); });
@@ -59,13 +63,18 @@ QW.renderResult = function (state) {
       ctx.font = font(400, 28);
       blocks.push({ field: f, lines: txt ? QW.wrapText(ctx, txt, W - 2 * pad - 80) : ["–"] });
     });
+    var dec = (state.texts.decision || "").trim();
+    ctx.font = font(400, 28);
+    blocks.push({ field: "decision", lines: dec ? QW.wrapText(ctx, dec, W - 2 * pad - 80) : ["–"] });
   }
   var assessH = 48 + 56 + 20;
   blocks.forEach(function (b) { assessH += 40 + b.lines.length * 40 + 18; });
   assessH += 22;
 
+  ctx.font = font(400, 20);
+  var footLines = QW.wrapText(ctx, t("footer"), W - 2 * pad);
   var headH = 140;
-  var H = pad + headH + cardH + 48 + assessH + 70 + pad / 2;
+  var H = pad + headH + cardH + 48 + assessH + 50 + footLines.length * 28 + pad / 2;
   canvas.width = W * scale;
   canvas.height = H * scale;
   ctx.scale(scale, scale);
@@ -133,11 +142,17 @@ QW.renderResult = function (state) {
     yy += 22;
     ctx.fillStyle = c.cat.color === "#F9A825" ? "#8a5d00" : c.cat.color;
     ctx.font = font(700, 22);
-    ctx.fillText(t("example").toUpperCase(), x + 32, yy);
+    ctx.fillText(t("scenario").toUpperCase(), x + 32, yy);
     yy += 34;
-    ctx.fillStyle = "#4a515b";
-    ctx.font = font(400, 24, "italic");
-    c.exLines.forEach(function (l) { ctx.fillText(l, x + 32, yy); yy += 34; });
+    c.rows.forEach(function (r) {
+      ctx.fillStyle = "#4a515b";
+      ctx.font = font(700, 21);
+      ctx.fillText(r.label, x + 32, yy);
+      ctx.fillStyle = "#30363d";
+      ctx.font = font(400, 23);
+      r.lines.forEach(function (l) { ctx.fillText(l, x + 32 + SC_LABEL, yy); yy += 32; });
+      yy += 8;
+    });
   });
 
   // relation symbol between the cards
@@ -186,10 +201,11 @@ QW.renderResult = function (state) {
   yy2 += 20;
   blocks.forEach(function (b) {
     yy2 += 40;
-    ctx.fillStyle = rel !== "both" ? "#59606b" : b.field === "support" ? QW.relations.support.color
+    var isDecision = b.field === "decision";
+    ctx.fillStyle = isDecision ? "#2b2f36" : rel !== "both" ? "#59606b" : b.field === "support" ? QW.relations.support.color
       : b.field === "conflict" ? QW.relations.conflict.color : "#59606b";
     ctx.font = font(700, 24);
-    ctx.fillText(t(rel === "both" ? "label_" + b.field : "label_neutral"), ax, yy2);
+    ctx.fillText(t(isDecision ? "label_decision" : rel === "both" ? "label_" + b.field : "label_neutral"), ax, yy2);
     ctx.fillStyle = "#1f2328";
     ctx.font = font(400, 28);
     b.lines.forEach(function (l) { yy2 += 40; ctx.fillText(l, ax, yy2); });
@@ -199,7 +215,8 @@ QW.renderResult = function (state) {
   // footer
   ctx.fillStyle = "#7b828c";
   ctx.font = font(400, 20);
-  ctx.fillText(t("footer"), pad, H - pad / 2 - 14);
+  var fy = ay + assessH + 50;
+  footLines.forEach(function (l) { ctx.fillText(l, pad, fy); fy += 28; });
   return canvas;
 };
 

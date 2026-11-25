@@ -13,6 +13,7 @@ const QW = sandbox.window.QW;
 const errors = [];
 const langs = ["en", "de"];
 const fail = (msg) => errors.push(msg);
+const REQUIRE_DECISION = !process.argv.includes("--no-decision");
 
 if (QW.categories.length !== 9) fail(`expected 9 characteristics, found ${QW.categories.length}`);
 if (QW.qualities.length !== 40) fail(`expected 40 subcharacteristics, found ${QW.qualities.length}`);
@@ -22,8 +23,11 @@ for (const q of QW.qualities) {
   if (ids.has(q.id)) fail(`duplicate id ${q.id}`);
   ids.add(q.id);
   if (!QW.categoryById[q.cat]) fail(`${q.id}: unknown characteristic ${q.cat}`);
-  for (const field of ["name", "desc", "example"]) {
+  for (const field of ["name", "desc"]) {
     for (const l of langs) if (!q[field] || !q[field][l]) fail(`${q.id}: missing ${field}.${l}`);
+  }
+  for (const part of ["context", "stimulus", "response", "measure"]) {
+    for (const l of langs) if (!q.scenario || !q.scenario[part] || !q.scenario[part][l]) fail(`${q.id}: missing scenario.${part}.${l}`);
   }
 }
 for (const c of QW.categories) {
@@ -43,6 +47,7 @@ for (const [key, s] of Object.entries(QW.suggestions)) {
   for (const f of ["support", "conflict", "neutral"]) {
     if (s[f] && !fields[s.rel].includes(f)) fail(`suggestion ${key}: text ${f} does not fit relation ${s.rel}`);
   }
+  if (REQUIRE_DECISION) for (const l of langs) if (!s.decision || !s.decision[l]) fail(`suggestion ${key}: missing decision.${l}`);
 }
 
 for (const l of langs) {

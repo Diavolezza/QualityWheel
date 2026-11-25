@@ -8,7 +8,9 @@
     lang: initialLang(),
     drawn: [],
     relation: null,
-    texts: { support: "", conflict: "", neutral: "" },
+    texts: { support: "", conflict: "", neutral: "", decision: "" },
+    rejected: [],          // second qualities drawn again in this round
+    preferTradeoffs: initialPrefer(),
     name: "",
     suggestionOpen: false
   };
@@ -26,6 +28,10 @@
       if (s === "de" || s === "en") return s;
     } catch (e) { /* storage not available */ }
     return (navigator.language || "en").toLowerCase().indexOf("de") === 0 ? "de" : "en";
+  }
+
+  function initialPrefer() {
+    try { return window.localStorage.getItem("qw.prefer") !== "off"; } catch (e) { return true; }
   }
 
   function t(key, vars) { return QW.t(state.lang, key, vars); }
@@ -57,6 +63,7 @@
     ["support", "conflict", "neutral"].forEach(function (f) {
       $("text-" + f).placeholder = t("placeholder");
     });
+    $("text-decision").placeholder = t("placeholder_decision");
     if (wheel) wheel.setLabels(wheelItems());
     renderLegend();
     renderAll();
@@ -123,13 +130,22 @@
     var d = document.createElement("p");
     d.textContent = q.desc[state.lang];
     body.appendChild(d);
-    var ex = document.createElement("p");
-    ex.className = "example";
-    var exl = document.createElement("strong");
-    exl.textContent = t("example") + ": ";
-    ex.appendChild(exl);
-    ex.appendChild(document.createTextNode(q.example[state.lang]));
-    body.appendChild(ex);
+    var sc = document.createElement("div");
+    sc.className = "scenario";
+    var sh = document.createElement("h4");
+    sh.textContent = t("scenario");
+    sc.appendChild(sh);
+    var dl = document.createElement("dl");
+    ["context", "stimulus", "response", "measure"].forEach(function (k) {
+      var dt = document.createElement("dt");
+      dt.textContent = t("sc_" + k);
+      var dd = document.createElement("dd");
+      dd.textContent = q.scenario[k][state.lang];
+      dl.appendChild(dt);
+      dl.appendChild(dd);
+    });
+    sc.appendChild(dl);
+    body.appendChild(sc);
     var det = document.createElement("details");
     var sum = document.createElement("summary");
     sum.textContent = t("aboutCategory") + " " + cat.name[state.lang];
@@ -146,6 +162,9 @@
     spin.disabled = n >= 2 || wheel.spinning;
     spin.textContent = wheel.spinning ? t("spinning") : n === 0 ? t("spin1") : n === 1 ? t("spin2") : t("spinDone");
     $("reset").disabled = wheel.spinning || n === 0;
+    $("redraw").hidden = n < 2;
+    $("redraw").disabled = wheel.spinning;
+    $("prefer").checked = state.preferTradeoffs;
     $("wheel-status").textContent = n === 0 ? t("statusStart") : n === 1 ? t("statusOne") : t("statusTwo");
   }
 
@@ -169,6 +188,11 @@
       if (ta.value !== state.texts[f]) ta.value = state.texts[f];
       ta.disabled = !ready;
     });
+    var dec = $("field-decision");
+    dec.hidden = !state.relation;
+    if (state.relation) dec.querySelector(".field-label").textContent = t("decision_" + state.relation);
+    if ($("text-decision").value !== state.texts.decision) $("text-decision").value = state.texts.decision;
+    $("text-decision").disabled = !ready;
     $("name").disabled = !ready;
     $("export").disabled = !ready;
     $("copy").disabled = !ready;
@@ -222,6 +246,15 @@
       p.appendChild(document.createTextNode(s[f][state.lang]));
       box.appendChild(p);
     });
+    if (s.decision) {
+      var dp = document.createElement("p");
+      dp.className = "sugg-decision";
+      var db = document.createElement("strong");
+      db.textContent = t("label_decision") + ": ";
+      dp.appendChild(db);
+      dp.appendChild(document.createTextNode(s.decision[state.lang]));
+      box.appendChild(dp);
+    }
     var note = document.createElement("p");
     note.className = "note";
     note.textContent = t("suggestionNote");
@@ -236,12 +269,38 @@
   }
 
   // ---------- actions ----------
+  // Weight of a candidate for the second draw: with "prefer trade-offs", pairs whose suggestion is a
+  // conflict (or both) come four times as often as neutral pairs, supporting pairs twice as often.
+  var WEIGHTS = { conflict: 4, both: 4, support: 2, neutral: 1 };
+  function weightOf(first, id) {
+    if (!state.preferTradeoffs || !first) return 1;
+    var s = QW.suggestions[QW.pairKey(first, id)];
+    return s ? WEIGHTS[s.rel] : 1;
+  }
+
+  function pickRandom(pool, first) {
+    var weights = pool.map(function (id) { return weightOf(first, id); });
+    var total = weights.reduce(function (a, b) { return a + b; }, 0);
+    var r = QW.random() * total;
+    for (var i = 0; i < pool.length; i++) {
+      r -= weights[i];
+      if (r < 0) return pool[i];
+    }
+    return pool[pool.length - 1];
+  }
+
   function spin() {
     if (wheel.spinning || state.drawn.length >= 2) return;
     QW.sound.unlock();
-    var pool = QW.qualities.map(function (q) { return q.id; })
-      .filter(function (id) { return state.drawn.indexOf(id) < 0; });
-    var id = pool[Math.floor(QW.random() * pool.length)];
+    var first = state.drawn[0];
+    var pool = QW.qualities.map(function (q) { return q.id; }).filter(function (id) {
+      return state.drawn.indexOf(id) < 0 && state.rejected.indexOf(id) < 0;
+    });
+    if (!pool.length) {           // everything rejected: allow all again
+      state.rejected = [];
+      pool = QW.qualities.map(function (q) { return q.id; }).filter(function (id) { return id !== first; });
+    }
+    var id = pickRandom(pool, first);
     wheel.spinTo(id, function (won) {
       state.drawn.push(won);
       wheel.drawn = state.drawn.slice();
@@ -252,11 +311,25 @@
     renderWheelControls();
   }
 
+  // Draws the second quality again (for example after a neutral pair); the first one stays.
+  function redrawSecond() {
+    if (wheel.spinning || state.drawn.length !== 2) return;
+    state.rejected.push(state.drawn.pop());
+    state.relation = null;
+    state.texts = { support: "", conflict: "", neutral: "", decision: "" };
+    state.suggestionOpen = false;
+    wheel.drawn = state.drawn.slice();
+    wheel.highlight = null;
+    renderAll();
+    spin();
+  }
+
   function reset() {
     if (wheel.spinning) return;
     state.drawn = [];
     state.relation = null;
-    state.texts = { support: "", conflict: "", neutral: "" };
+    state.texts = { support: "", conflict: "", neutral: "", decision: "" };
+    state.rejected = [];
     state.suggestionOpen = false;
     wheel.drawn = [];
     wheel.highlight = null;
@@ -300,6 +373,11 @@
     $("spin").addEventListener("click", spin);
     $("wheel").addEventListener("click", spin);
     $("reset").addEventListener("click", reset);
+    $("redraw").addEventListener("click", redrawSecond);
+    $("prefer").addEventListener("change", function (e) {
+      state.preferTradeoffs = e.target.checked;
+      try { window.localStorage.setItem("qw.prefer", e.target.checked ? "on" : "off"); } catch (err) { /* ignore */ }
+    });
     $("sound").addEventListener("click", function () {
       QW.sound.setEnabled(!QW.sound.isEnabled());
       renderSoundButton();
@@ -315,7 +393,7 @@
         $("text-" + first).focus();
       });
     });
-    ["support", "conflict", "neutral"].forEach(function (f) {
+    ["support", "conflict", "neutral", "decision"].forEach(function (f) {
       $("text-" + f).addEventListener("input", function (e) {
         state.texts[f] = e.target.value;
         renderSuggestion();

@@ -98,7 +98,14 @@ button.small { padding: .4rem .8rem; font-size: .9rem; }
 .card-body .num { color: var(--muted); font-weight: 600; font-variant-numeric: tabular-nums; }
 .card-body .alt-name { margin: .1rem 0 0; color: var(--muted); font-size: .9rem; font-style: italic; }
 .card-body p { margin: .6rem 0 0; }
-.card-body .example { color: var(--ink-2); }
+.scenario { margin-top: .8rem; background: #f7f6f3; border-radius: 10px; padding: .6rem .8rem; }
+.scenario h4 { margin: 0 0 .35rem; font-size: .75rem; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); }
+.scenario dl { margin: 0; display: grid; grid-template-columns: max-content 1fr; gap: .2rem .7rem; font-size: .92rem; }
+.scenario dt { font-weight: 650; color: var(--ink-2); }
+.scenario dd { margin: 0; }
+.prefer { display: flex; justify-content: center; align-items: center; gap: .4rem; margin-top: .5rem; font-size: .9rem; color: var(--ink-2); cursor: pointer; }
+.field-decision .field-label { color: var(--accent); }
+.suggestion .sugg-decision { border-top: 1px solid var(--line); padding-top: .4rem; }
 .card-body details { margin-top: .8rem; font-size: .9rem; color: var(--ink-2); }
 .card-body summary { cursor: pointer; color: var(--muted); }
 .card.arrived { animation: arrive .5s ease-out; }
