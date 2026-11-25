@@ -12,6 +12,10 @@
     name: "",
     suggestionOpen: false
   };
+  // Teacher mode (?teacher): the suggestion is available at once.
+  // Otherwise it appears only after an own assessment with a reason of some length.
+  var teacher = params.has("teacher");
+  var MIN_OWN_TEXT = 40;
   var wheel;
 
   function initialLang() {
@@ -168,14 +172,21 @@
     $("name").disabled = !ready;
     $("export").disabled = !ready;
     $("copy").disabled = !ready;
-    $("suggest").disabled = !ready;
     $("copy").hidden = !(window.ClipboardItem && navigator.clipboard && navigator.clipboard.write);
     renderSuggestion();
   }
 
+  // An own assessment exists: a relation is chosen and its text fields hold enough text.
+  function ownAssessmentDone() {
+    if (!state.relation) return false;
+    var len = QW.relationFields[state.relation].reduce(function (n, f) { return n + state.texts[f].trim().length; }, 0);
+    return len >= MIN_OWN_TEXT;
+  }
+
   function renderSuggestion() {
     var box = $("suggestion"), btn = $("suggest");
-    var ready = state.drawn.length === 2;
+    var ready = state.drawn.length === 2 && (teacher || ownAssessmentDone());
+    btn.hidden = !ready;
     btn.textContent = state.suggestionOpen ? t("hideSuggestion") : t("showSuggestion");
     btn.setAttribute("aria-expanded", String(state.suggestionOpen && ready));
     box.hidden = !(state.suggestionOpen && ready);
@@ -209,12 +220,6 @@
     note.className = "note";
     note.textContent = t("suggestionNote");
     box.appendChild(note);
-    var adopt = document.createElement("button");
-    adopt.type = "button";
-    adopt.className = "ghost small";
-    adopt.textContent = t("adopt");
-    adopt.addEventListener("click", function () { adoptSuggestion(s); });
-    box.appendChild(adopt);
   }
 
   function renderAll() {
@@ -251,18 +256,6 @@
     wheel.highlight = null;
     wheel.draw();
     renderAll();
-  }
-
-  function hasOwnText() {
-    return Object.keys(state.texts).some(function (k) { return state.texts[k].trim() !== ""; });
-  }
-
-  function adoptSuggestion(s) {
-    if ((state.relation || hasOwnText()) && !window.confirm(t("adoptConfirm"))) return;
-    state.relation = s.rel;
-    state.texts = { support: "", conflict: "", neutral: "" };
-    QW.relationFields[s.rel].forEach(function (f) { state.texts[f] = s[f][state.lang]; });
-    renderAssessment();
   }
 
   function exportPng() {
@@ -317,7 +310,10 @@
       });
     });
     ["support", "conflict", "neutral"].forEach(function (f) {
-      $("text-" + f).addEventListener("input", function (e) { state.texts[f] = e.target.value; });
+      $("text-" + f).addEventListener("input", function (e) {
+        state.texts[f] = e.target.value;
+        renderSuggestion();
+      });
     });
     $("name").addEventListener("input", function (e) { state.name = e.target.value; });
     $("export").addEventListener("click", exportPng);
@@ -342,7 +338,7 @@
     }
     var rel = params.get("rel");
     if (state.drawn.length === 2 && QW.relations[rel]) state.relation = rel;
-    if (state.drawn.length === 2 && params.has("suggest")) state.suggestionOpen = true;
+    if (teacher && state.drawn.length === 2 && params.has("suggest")) state.suggestionOpen = true;
     setLang(state.lang);
   }
 

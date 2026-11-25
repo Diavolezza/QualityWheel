@@ -21,7 +21,9 @@ The app speaks English and German (switch at the top right); everything in this 
 - Each card shows the clause number, the name, a description and an example, and the characteristic it belongs to.
 - The assessment has four options. “Both” asks for one example where the qualities support each other and one where
   they conflict.
-- “Show suggestion” shows a prepared assessment for the pair, if there is one. A suggestion is a starting point for
+- “Compare with a suggestion” shows a prepared assessment for the pair, if there is one. The link appears only after
+  the students have chosen a relation and written a reason (at least 40 characters), so the suggestion is something
+  to compare with, not a shortcut. It cannot be copied into the own assessment. A suggestion is a starting point for
   discussion, not the one right answer – the relation always depends on the context of the system.
 - “Save as image” downloads a PNG with both qualities and the assessment; “Copy image” puts it on the clipboard
   (in browsers that support it).
@@ -47,7 +49,8 @@ and all suggestions (also run by the GitHub workflow before publishing).
 ### Launch options
 
 For teaching and tests: `index.html?lang=de` sets the language, `pick=3.2.2,3.6.1` starts with these two qualities
-drawn, `rel=both` preselects an assessment, `suggest` opens the suggestion.
+drawn, `rel=both` preselects an assessment, `teacher` makes the suggestion available at once (for demos and the debrief),
+`teacher&suggest` opens it.
 
 ## About the texts
 
