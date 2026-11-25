@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Quality Wheel – ISO/IEC 25010</title>
+  <meta name="description" content="Draw two qualities from ISO/IEC 25010:2023 with a wheel and assess whether they support each other, are neutral or conflict.">
+  <link rel="icon" href="favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <header class="top">
+    <div class="brand">
+      <h1 data-i18n="title">Quality Wheel</h1>
+      <p data-i18n="subtitle"></p>
+    </div>
+    <div class="lang" role="group" aria-label="Language / Sprache">
+      <button type="button" data-lang="de" aria-pressed="false">DE</button>
+      <button type="button" data-lang="en" aria-pressed="false">EN</button>
+    </div>
+  </header>
+
+  <main class="layout">
+    <section class="wheel-panel">
+      <div class="wheel-wrap">
+        <canvas id="wheel" role="img"></canvas>
+      </div>
+      <div class="wheel-actions">
+        <button type="button" id="spin" class="primary"></button>
+        <button type="button" id="reset" class="ghost" data-i18n="newRound"></button>
+      </div>
+      <p id="wheel-status" class="status" aria-live="polite"></p>
+      <h2 class="legend-title" data-i18n="legend"></h2>
+      <ul id="legend" class="legend"></ul>
+    </section>
+
+    <section class="result-panel">
+      <div class="cards" aria-live="polite">
+        <article class="card empty" id="card-0"></article>
+        <article class="card empty" id="card-1"></article>
+      </div>
+
+      <section class="assess locked" id="assess">
+        <h2 data-i18n="assessment"></h2>
+        <p class="hint" id="assess-hint"></p>
+        <div class="rel-group" id="rel-group" role="radiogroup">
+          <button type="button" role="radio" data-rel="support" class="rel rel-support" aria-checked="false"><span class="sym">+</span><span class="rel-label"></span></button>
+          <button type="button" role="radio" data-rel="neutral" class="rel rel-neutral" aria-checked="false"><span class="sym">○</span><span class="rel-label"></span></button>
+          <button type="button" role="radio" data-rel="conflict" class="rel rel-conflict" aria-checked="false"><span class="sym">−</span><span class="rel-label"></span></button>
+          <button type="button" role="radio" data-rel="both" class="rel rel-both" aria-checked="false"><span class="sym">±</span><span class="rel-label"></span></button>
+        </div>
+        <label class="field field-support" id="field-support" hidden>
+          <span class="field-label"></span>
+          <textarea id="text-support" rows="3"></textarea>
+        </label>
+        <label class="field field-conflict" id="field-conflict" hidden>
+          <span class="field-label"></span>
+          <textarea id="text-conflict" rows="3"></textarea>
+        </label>
+        <label class="field field-neutral" id="field-neutral" hidden>
+          <span class="field-label"></span>
+          <textarea id="text-neutral" rows="3"></textarea>
+        </label>
+        <label class="field name-field">
+          <span class="field-label" data-i18n="nameLabel"></span>
+          <input type="text" id="name" maxlength="80" autocomplete="off">
+        </label>
+        <div class="actions">
+          <button type="button" id="export" class="primary" data-i18n="exportPng"></button>
+          <button type="button" id="copy" class="ghost" data-i18n="copyPng"></button>
+          <button type="button" id="suggest" class="ghost" aria-controls="suggestion"></button>
+        </div>
+        <div id="suggestion" class="suggestion" hidden></div>
+      </section>
+    </section>
+  </main>
+
+  <footer class="foot">
+    <p><span data-i18n="footer"></span> · <a href="https://github.com/Diavolezza/QualityWheel" data-i18n="source"></a></p>
+  </footer>
+  <div id="flash" class="flash" role="status"></div>
+
+  <script src="js/data.js"></script>
+  <script src="js/suggestions.js"></script>
+  <script src="js/i18n.js"></script>
+  <script src="js/wheel.js"></script>
+  <script src="js/export.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>
