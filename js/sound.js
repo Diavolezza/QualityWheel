@@ -4,61 +4,95 @@
 window.QW = window.QW || {};
 
 QW.sound = (function () {
-  var ctx = null, noise = null, lastTick = 0;
+  var ctx = null, master = null, noise = null, lastTick = 0;
   var enabled = true;
   try { enabled = window.localStorage.getItem("qw.sound") !== "off"; } catch (e) { /* ignore */ }
 
-  // Browsers allow audio only after a user gesture: call unlock() in a click handler.
+  function makeNoise(c) {
+    var b = c.createBuffer(1, Math.round(c.sampleRate * 0.04), c.sampleRate);
+    var d = b.getChannelData(0);
+    for (var i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
+    return b;
+  }
+
+  // One click: a short wooden "tock" (pitch falling quickly) plus a bit of noise for the attack.
+  function playTick(c, out, noiseBuf, when) {
+    var osc = c.createOscillator();
+    osc.type = "triangle";
+    osc.frequency.setValueAtTime(1700, when);
+    osc.frequency.exponentialRampToValueAtTime(600, when + 0.03);
+    var og = c.createGain();
+    og.gain.setValueAtTime(0.0001, when);
+    og.gain.exponentialRampToValueAtTime(0.9, when + 0.002);
+    og.gain.exponentialRampToValueAtTime(0.0001, when + 0.045);
+    osc.connect(og);
+    og.connect(out);
+    osc.start(when);
+    osc.stop(when + 0.05);
+
+    var src = c.createBufferSource();
+    src.buffer = noiseBuf;
+    var hp = c.createBiquadFilter();
+    hp.type = "highpass";
+    hp.frequency.value = 1500;
+    var ng = c.createGain();
+    ng.gain.setValueAtTime(0.0001, when);
+    ng.gain.exponentialRampToValueAtTime(0.6, when + 0.001);
+    ng.gain.exponentialRampToValueAtTime(0.0001, when + 0.018);
+    src.connect(hp);
+    hp.connect(ng);
+    ng.connect(out);
+    src.start(when);
+    src.stop(when + 0.02);
+  }
+
+  function playBell(c, out, when) {
+    [880, 1320].forEach(function (f, i) {
+      var osc = c.createOscillator();
+      osc.type = "sine";
+      osc.frequency.value = f;
+      var g = c.createGain();
+      g.gain.setValueAtTime(0.0001, when);
+      g.gain.exponentialRampToValueAtTime(i === 0 ? 0.5 : 0.2, when + 0.01);
+      g.gain.exponentialRampToValueAtTime(0.0001, when + 0.8);
+      osc.connect(g);
+      g.connect(out);
+      osc.start(when);
+      osc.stop(when + 0.85);
+    });
+  }
+
+  // Browsers allow audio only after a user gesture: call unlock() inside a click handler.
   function unlock() {
     if (!enabled) return;
     var AC = window.AudioContext || window.webkitAudioContext;
     if (!AC) return;
     if (!ctx) {
       ctx = new AC();
-      // 30 ms of white noise, reused for every click
-      noise = ctx.createBuffer(1, Math.round(ctx.sampleRate * 0.03), ctx.sampleRate);
-      var d = noise.getChannelData(0);
-      for (var i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
+      master = ctx.createGain();
+      master.gain.value = 0.8;
+      master.connect(ctx.destination);
+      noise = makeNoise(ctx);
     }
-    if (ctx.state === "suspended") ctx.resume();
+    if (ctx.state !== "running" && ctx.resume) ctx.resume();
+    // iOS unlocks audio only when a sound starts inside the gesture: play one silent sample.
+    var silent = ctx.createBufferSource();
+    silent.buffer = ctx.createBuffer(1, 1, ctx.sampleRate);
+    silent.connect(ctx.destination);
+    silent.start(0);
   }
 
   function tick() {
-    if (!enabled || !ctx) return;
+    if (!enabled || !ctx || ctx.state !== "running") return;
     var now = ctx.currentTime;
-    if (now - lastTick < 0.018) return;   // at full speed the clicks would merge into a hiss
+    if (now - lastTick < 0.03) return;   // at full speed the clicks would merge into a buzz
     lastTick = now;
-    var src = ctx.createBufferSource();
-    src.buffer = noise;
-    var band = ctx.createBiquadFilter();
-    band.type = "bandpass";
-    band.frequency.value = 2400 + Math.random() * 400;
-    band.Q.value = 1.4;
-    var gain = ctx.createGain();
-    gain.gain.setValueAtTime(0.0001, now);
-    gain.gain.exponentialRampToValueAtTime(0.55, now + 0.002);
-    gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.028);
-    src.connect(band).connect(gain).connect(ctx.destination);
-    src.start(now);
-    src.stop(now + 0.03);
+    playTick(ctx, master, noise, now);
   }
 
   function stop() {
-    if (!enabled || !ctx) return;
-    var now = ctx.currentTime;
-    [880, 1320].forEach(function (f, i) {
-      var osc = ctx.createOscillator();
-      osc.type = "sine";
-      osc.frequency.value = f;
-      var gain = ctx.createGain();
-      var peak = i === 0 ? 0.18 : 0.07;
-      gain.gain.setValueAtTime(0.0001, now);
-      gain.gain.exponentialRampToValueAtTime(peak, now + 0.01);
-      gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.7);
-      osc.connect(gain).connect(ctx.destination);
-      osc.start(now);
-      osc.stop(now + 0.75);
-    });
+    if (!enabled || !ctx || ctx.state !== "running") return;
+    playBell(ctx, master, ctx.currentTime + 0.02);
   }
 
   function setEnabled(on) {
@@ -69,6 +103,9 @@ QW.sound = (function () {
 
   return {
     unlock: unlock, tick: tick, stop: stop, setEnabled: setEnabled,
-    isEnabled: function () { return enabled; }
+    isEnabled: function () { return enabled; },
+    state: function () { return ctx ? ctx.state : "none"; },
+    // for tests: render sounds into an offline context
+    _playTick: playTick, _playBell: playBell, _makeNoise: makeNoise
   };
 })();
