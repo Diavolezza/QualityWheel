@@ -149,6 +149,7 @@ button.small { padding: .4rem .8rem; font-size: .9rem; }
 }
 .suggestion h4 { margin: 0 0 .3rem; font-size: .8rem; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); }
 .suggestion p { margin: .4rem 0; }
+.suggestion .sugg-pair { font-weight: 600; color: var(--ink-2); margin-top: 0; }
 .suggestion .sugg-rel { font-weight: 800; font-size: 1.1rem; }
 .suggestion .note { font-size: .88rem; color: var(--muted); }
 

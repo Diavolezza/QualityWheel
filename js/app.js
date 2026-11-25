@@ -196,6 +196,12 @@
     var h = document.createElement("h4");
     h.textContent = t("suggestionTitle");
     box.appendChild(h);
+    var pair = document.createElement("p");
+    pair.className = "sugg-pair";
+    pair.textContent = state.drawn.map(function (id) {
+      return id + " " + QW.qualityById[id].name[state.lang];
+    }).join("  ×  ");
+    box.appendChild(pair);
     if (!s) {
       var p = document.createElement("p");
       p.textContent = t("suggestionNone");
