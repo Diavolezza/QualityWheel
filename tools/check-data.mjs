@@ -47,7 +47,9 @@ for (const [key, s] of Object.entries(QW.suggestions)) {
   for (const f of ["support", "conflict", "neutral"]) {
     if (s[f] && !fields[s.rel].includes(f)) fail(`suggestion ${key}: text ${f} does not fit relation ${s.rel}`);
   }
-  if (REQUIRE_DECISION) for (const l of langs) if (!s.decision || !s.decision[l]) fail(`suggestion ${key}: missing decision.${l}`);
+  // Neutral suggestions may omit the decision; all others need one.
+  if (s.decision) { for (const l of langs) if (!s.decision[l]) fail(`suggestion ${key}: missing decision.${l}`); }
+  else if (REQUIRE_DECISION && s.rel !== "neutral") fail(`suggestion ${key}: missing decision`);
 }
 
 for (const l of langs) {

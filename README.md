@@ -44,8 +44,8 @@ The app speaks English and German (switch at the top right); everything in this 
 
 40 subcharacteristics give 780 unordered pairs. `js/suggestions.js` holds a suggestion for **every one of
 them**. A suggestion has a relation (`support`, `neutral`, `conflict`, `both`), a short reason and the architecture
-decision behind it, in English and German. A neutral suggestion names the decision that would create a link after
-all.
+decision behind it, in English and German. A neutral suggestion gives a plain reason why there is no direct link
+and usually no decision; where a typical touchpoint exists, it is named in the reason.
 
 ```js
 "3.2.2|3.5.2": { rel: "conflict",
